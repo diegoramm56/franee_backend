@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: cosmetics-pos-backend
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Variables de base de datos — configurar en el dashboard de Render
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SERVER
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_PORT
+        sync: false
+      # Dominio del frontend en Cloudflare Pages, ej: https://cosmetics-pos.pages.dev
+      - key: CORS_ORIGIN
+        sync: false

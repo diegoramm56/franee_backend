@@ -16,7 +16,26 @@ import usersRouter from './routes/users.routes.js';
 const app = express();
 const port = process.env.PORT ?? 4000;
 
-app.use(cors());
+// CORS: en producción se restringe al dominio de Cloudflare Pages
+// Configura CORS_ORIGIN en las variables de entorno de Render, ej:
+// CORS_ORIGIN=https://tu-app.pages.dev
+// Para múltiples orígenes separa con coma: https://a.pages.dev,https://b.pages.dev
+const rawOrigins = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
+const allowedOrigins = rawOrigins.split(',').map((o) => o.trim());
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir peticiones sin origin (ej. curl, Postman)
+    if (!origin) {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: origin ${origin} no permitido`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {

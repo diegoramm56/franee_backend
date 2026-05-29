@@ -1,15 +1,16 @@
 import sql from 'mssql';
 
 // Configuración de la base de datos SQL Server
+// Los valores se leen de variables de entorno; si no existen, se usan los valores locales de desarrollo
 const dbSettings: sql.config = {
-  user: 'AppCosmeticsUser',
-  password: 'diegoadmin',
-  server: 'mssql-208881-0.cloudclusters.net',
-  database: 'CosmeticsPOS',
-  port: 10027,
+  user: process.env.DB_USER ?? 'AppCosmeticsUser',
+  password: process.env.DB_PASSWORD ?? 'diegoadmin',
+  server: process.env.DB_SERVER ?? 'mssql-208881-0.cloudclusters.net',
+  database: process.env.DB_NAME ?? 'CosmeticsPOS',
+  port: Number(process.env.DB_PORT ?? 10027),
   options: {
-    encrypt: true, // true para conexión segura (Azure), false para local por defecto si no hay certificado
-    trustServerCertificate: true, // Recomendado en entornos locales
+    encrypt: true,
+    trustServerCertificate: true,
   },
 };
 
