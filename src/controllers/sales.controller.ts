@@ -54,7 +54,7 @@ export const createSale = asyncHandler(async (req, res) => {
       purchasePrice: Number(detail.purchasePrice ?? detail.cost ?? 0),
       salePrice: Number(detail.salePrice ?? detail.unitPrice ?? 0),
       discount: Number(detail.discount ?? 0),
-      subtotal: Number(detail.subtotal ?? detail.quantity * detail.unitPrice ?? 0)
+      subtotal: Number(detail.subtotal ?? detail.quantity * detail.unitPrice)
     }))
   };
   const result = await salesRepository.createWithDetails(input);

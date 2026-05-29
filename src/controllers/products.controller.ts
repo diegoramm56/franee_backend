@@ -190,15 +190,16 @@ export const updateProductBranches = asyncHandler(async (req, res) => {
   const payload = Array.isArray(req.body) ? req.body : req.body?.branches ?? [];
   const branches = await branchesRepository.findAll();
   const validIds = new Set(branches.map((branch) => branch.branchId));
-  const normalized = payload
+  type NormalizedBranch = { branchId: string; enable: boolean; stock: number; price: number; cost: number };
+  const mapped: NormalizedBranch[] = payload
     .map((branch: any) => ({
       branchId: String(branch.branchID ?? branch.branchId),
       enable: branch.enable ?? true,
       stock: Number(branch.stock ?? 0),
       price: Number(branch.price ?? branch.unitPrice ?? product.unitPrice ?? 0),
       cost: Number(branch.cost ?? branch.purchasePrice ?? product.purchasePrice ?? 0)
-    }))
-    .filter((item) => item.branchId && validIds.has(item.branchId));
+    }));
+  const normalized = mapped.filter((item) => item.branchId && validIds.has(item.branchId));
 
   await productBranchRepository.replaceProductBranches(
     productId,

@@ -24,7 +24,7 @@ const rawOrigins = process.env.CORS_ORIGIN ?? 'http://localhost:3000';
 const allowedOrigins = rawOrigins.split(',').map((o) => o.trim());
 
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Permitir peticiones sin origin (ej. curl, Postman)
     if (!origin) {
       return callback(null, true);

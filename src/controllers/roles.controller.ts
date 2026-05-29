@@ -16,8 +16,9 @@ const parseModuleNames = (payload: any): string[] => {
     : Array.isArray(payload)
       ? payload
       : [];
-  return modules
-    .map((mod) => (typeof mod === 'string' ? mod : mod?.moduleName ?? mod?.name))
+  type ModuleEntry = string | { moduleName?: string; name?: string };
+  return (modules as ModuleEntry[])
+    .map((mod) => (typeof mod === 'string' ? mod : mod.moduleName ?? mod.name))
     .filter((mod): mod is string => Boolean(mod));
 };
 

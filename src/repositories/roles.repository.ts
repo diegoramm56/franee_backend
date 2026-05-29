@@ -14,7 +14,7 @@ const mapRole = (row: any): RoleRecord => ({
   description: row.description ?? null,
   state: Boolean(row.status),
   modules: typeof row.modulesCsv === 'string' && row.modulesCsv.length > 0
-    ? row.modulesCsv.split(',').map((module) => module.trim()).filter(Boolean)
+    ? row.modulesCsv.split(',').map((module: string) => module.trim()).filter(Boolean)
     : []
 });
 
