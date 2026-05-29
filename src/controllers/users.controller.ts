@@ -2,7 +2,12 @@ import { asyncHandler } from './asyncHandler.js';
 import { branchesRepository } from '../repositories/branches.repository.js';
 import { rolesRepository } from '../repositories/roles.repository.js';
 import { userBranchesRepository } from '../repositories/userBranches.repository.js';
-import { usersRepository } from '../repositories/users.repository.js';
+import { usersRepository, type UserRecord } from '../repositories/users.repository.js';
+
+const sanitizeUser = (user: UserRecord) => {
+  const { password: _pw, ...safe } = user;
+  return safe;
+};
 
 const parseUserId = (value: string) => {
   const id = Number(value);
@@ -21,7 +26,7 @@ const normalizeBranchIds = (branches: any[]): number[] => branches
 
 export const listUsers = asyncHandler(async (_req, res) => {
   const users = await usersRepository.findAll();
-  res.json(users);
+  res.json(users.map(sanitizeUser));
 });
 
 export const getUser = asyncHandler(async (req, res) => {
@@ -35,7 +40,7 @@ export const getUser = asyncHandler(async (req, res) => {
   if (!user) {
     return res.status(404).json({ message: 'Usuario no encontrado' });
   }
-  res.json(user);
+  res.json(sanitizeUser(user));
 });
 
 export const createUser = asyncHandler(async (req, res) => {
@@ -58,7 +63,7 @@ export const createUser = asyncHandler(async (req, res) => {
     }
   }
   const created = await usersRepository.findById(Number(user.userId));
-  res.status(201).json(created);
+  res.status(201).json(created ? sanitizeUser(created) : null);
 });
 
 export const updateUser = asyncHandler(async (req, res) => {
@@ -87,7 +92,7 @@ export const updateUser = asyncHandler(async (req, res) => {
     await userBranchesRepository.replaceUserBranches(userId, branchIds);
   }
   const refreshed = await usersRepository.findById(userId);
-  res.json(refreshed);
+  res.json(refreshed ? sanitizeUser(refreshed) : null);
 });
 
 export const deleteUser = asyncHandler(async (req, res) => {
@@ -101,7 +106,7 @@ export const deleteUser = asyncHandler(async (req, res) => {
   if (!removed) {
     return res.status(404).json({ message: 'Usuario no encontrado' });
   }
-  res.json(removed);
+  res.json(sanitizeUser(removed));
 });
 
 export const beginSession = asyncHandler(async (req, res) => {
