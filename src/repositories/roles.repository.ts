@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertRole, replicateDeleteRole } from '../replication/pgReplicator.js';
 
 export interface RoleRecord {
   rolId: string;
@@ -72,6 +73,7 @@ export class RolesRepository {
     if (!created) {
       throw new Error('No se pudo crear el rol');
     }
+    replicateUpsertRole(created);
     return created;
   }
 
@@ -93,7 +95,9 @@ export class RolesRepository {
             [status] = @state
         WHERE id_role = @roleId;
       `);
-    return this.findById(roleId);
+    const updated = await this.findById(roleId);
+    if (updated) replicateUpsertRole(updated);
+    return updated;
   }
 
   async delete(roleId: number): Promise<RoleRecord | null> {
@@ -105,6 +109,7 @@ export class RolesRepository {
     await pool.request()
       .input('roleId', sql.Int, roleId)
       .query('DELETE FROM dbo.Roles WHERE id_role = @roleId;');
+    replicateDeleteRole(roleId);
     return existing;
   }
 }

@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateReplaceRoleModules } from '../replication/pgReplicator.js';
 
 export interface RoleAccessRecord {
   idAccess: number;
@@ -76,6 +77,7 @@ export class RoleAccessRepository {
           `);
       }
       await transaction.commit();
+      replicateReplaceRoleModules(roleId, modules);
     } catch (error) {
       await transaction.rollback();
       throw error;

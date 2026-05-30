@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertMeasure, replicateDeleteMeasure } from '../replication/pgReplicator.js';
 
 export interface MeasureRecord {
   measureId: string;
@@ -57,7 +58,9 @@ export class MeasuresRepository {
         OUTPUT inserted.id_measure
         VALUES (@name, @abbreviation, @state);
       `);
-    return (await this.findById(insertResult.recordset[0].id_measure))!;
+    const created = (await this.findById(insertResult.recordset[0].id_measure))!;
+    replicateUpsertMeasure(created);
+    return created;
   }
 
   async update(measureId: number, data: { name?: string; abbreviation?: string; state?: boolean; }): Promise<MeasureRecord | null> {
@@ -78,7 +81,9 @@ export class MeasuresRepository {
             [status] = @state
         WHERE id_measure = @measureId;
       `);
-    return this.findById(measureId);
+    const updated = await this.findById(measureId);
+    if (updated) replicateUpsertMeasure(updated);
+    return updated;
   }
 
   async delete(measureId: number): Promise<MeasureRecord | null> {
@@ -90,6 +95,7 @@ export class MeasuresRepository {
     await pool.request()
       .input('measureId', sql.Int, measureId)
       .query('DELETE FROM dbo.Measures WHERE id_measure = @measureId;');
+    replicateDeleteMeasure(measureId);
     return existing;
   }
 }

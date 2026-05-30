@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertBrand, replicateDeleteBrand } from '../replication/pgReplicator.js';
 
 export interface BrandRecord {
   brandId: string;
@@ -52,7 +53,9 @@ export class BrandsRepository {
         OUTPUT inserted.id_brand
         VALUES (@name, @state);
       `);
-    return (await this.findById(insertResult.recordset[0].id_brand))!;
+    const created = (await this.findById(insertResult.recordset[0].id_brand))!;
+    replicateUpsertBrand(created);
+    return created;
   }
 
   async update(brandId: number, data: { name?: string; state?: boolean; }): Promise<BrandRecord | null> {
@@ -71,7 +74,9 @@ export class BrandsRepository {
             [status] = @state
         WHERE id_brand = @brandId;
       `);
-    return this.findById(brandId);
+    const updated = await this.findById(brandId);
+    if (updated) replicateUpsertBrand(updated);
+    return updated;
   }
 
   async delete(brandId: number): Promise<BrandRecord | null> {
@@ -83,6 +88,7 @@ export class BrandsRepository {
     await pool.request()
       .input('brandId', sql.Int, brandId)
       .query('DELETE FROM dbo.Brands WHERE id_brand = @brandId;');
+    replicateDeleteBrand(brandId);
     return existing;
   }
 }

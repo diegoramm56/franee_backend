@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertUser, replicateDeleteUser } from '../replication/pgReplicator.js';
 
 export interface UserRecord {
   userId: string;
@@ -107,7 +108,9 @@ export class UsersRepository {
         OUTPUT inserted.id_user
         VALUES (@username, @password, @email, @name, @rolId, @state);
       `);
-    return (await this.findById(insertResult.recordset[0].id_user))!;
+    const created = (await this.findById(insertResult.recordset[0].id_user))!;
+    replicateUpsertUser(created);
+    return created;
   }
 
   async update(userId: number, data: { username?: string; name?: string; password?: string; rolId?: number; email?: string | null; state?: boolean; }): Promise<UserRecord | null> {
@@ -134,7 +137,9 @@ export class UsersRepository {
             [status] = @state
         WHERE id_user = @userId;
       `);
-    return this.findById(userId);
+    const updated = await this.findById(userId);
+    if (updated) replicateUpsertUser(updated);
+    return updated;
   }
 
   async delete(userId: number): Promise<UserRecord | null> {
@@ -146,6 +151,7 @@ export class UsersRepository {
     await pool.request()
       .input('userId', sql.Int, userId)
       .query('DELETE FROM dbo.Users WHERE id_user = @userId;');
+    replicateDeleteUser(userId);
     return existing;
   }
 }

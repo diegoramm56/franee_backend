@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateInsertSale, replicateInsertSaleDetail } from '../replication/pgReplicator.js';
 import { productBranchRepository } from './productBranch.repository.js';
 import { saleDetailsRepository, SaleDetailInput, SaleDetailRecord } from './saleDetails.repository.js';
 
@@ -135,8 +136,11 @@ export class SalesRepository {
       }
 
       await transaction.commit();
+      const saleRecord = mapSale(saleRow);
+      replicateInsertSale(saleRecord);
+      for (const d of details) replicateInsertSaleDetail(d);
       return {
-        sale: mapSale(saleRow),
+        sale: saleRecord,
         details
       };
     } catch (error) {

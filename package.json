@@ -10,9 +10,11 @@
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0"
   },
   "dependencies": {
+    "@types/pg": "^8.20.0",
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "mssql": "^12.2.1"
+    "mssql": "^12.2.1",
+    "pg": "^8.21.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

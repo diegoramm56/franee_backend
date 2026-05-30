@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertBranch, replicateDeleteBranch } from '../replication/pgReplicator.js';
 
 export interface BranchRecord {
   branchId: string;
@@ -62,7 +63,9 @@ export class BranchesRepository {
         OUTPUT inserted.id_branch
         VALUES (@name, @address, @phone, @state);
       `);
-    return (await this.findById(insertResult.recordset[0].id_branch))!;
+    const created = (await this.findById(insertResult.recordset[0].id_branch))!;
+    replicateUpsertBranch(created);
+    return created;
   }
 
   async update(branchId: number, data: { name?: string; address?: string | null; phone?: string | null; state?: boolean; }): Promise<BranchRecord | null> {
@@ -85,7 +88,9 @@ export class BranchesRepository {
             [status] = @state
         WHERE id_branch = @branchId;
       `);
-    return this.findById(branchId);
+    const updated = await this.findById(branchId);
+    if (updated) replicateUpsertBranch(updated);
+    return updated;
   }
 
   async delete(branchId: number): Promise<BranchRecord | null> {
@@ -97,6 +102,7 @@ export class BranchesRepository {
     await pool.request()
       .input('branchId', sql.Int, branchId)
       .query('DELETE FROM dbo.Branches WHERE id_branch = @branchId;');
+    replicateDeleteBranch(branchId);
     return existing;
   }
 }

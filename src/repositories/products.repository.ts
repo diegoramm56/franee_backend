@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertProduct, replicateDeleteProduct } from '../replication/pgReplicator.js';
 
 export interface ProductRecord {
   productId: string;
@@ -161,7 +162,9 @@ export class ProductsRepository {
         OUTPUT inserted.id_product
         VALUES (@codeBar, @name, @description, @categoryId, @brandId, @measureId, @providerId, @state);
       `);
-    return (await this.findById(insertResult.recordset[0].id_product))!;
+    const created = (await this.findById(insertResult.recordset[0].id_product))!;
+    replicateUpsertProduct(created);
+    return created;
   }
 
   async update(productId: number, data: {
@@ -201,7 +204,9 @@ export class ProductsRepository {
             [status] = @state
         WHERE id_product = @productId;
       `);
-    return this.findById(productId);
+    const updated = await this.findById(productId);
+    if (updated) replicateUpsertProduct(updated);
+    return updated;
   }
 
   async delete(productId: number): Promise<ProductRecord | null> {
@@ -213,6 +218,7 @@ export class ProductsRepository {
     await pool.request()
       .input('productId', sql.Int, productId)
       .query('DELETE FROM dbo.Products WHERE id_product = @productId;');
+    replicateDeleteProduct(productId);
     return existing;
   }
 }

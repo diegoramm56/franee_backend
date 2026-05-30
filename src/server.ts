@@ -1,6 +1,9 @@
 import cors from 'cors';
 import express from 'express';
 
+import { ensurePgDatabaseExists } from './config/pgDatabase.js';
+import { initPgSchema } from './replication/pgSchema.js';
+
 import branchesRouter from './routes/branches.routes.js';
 import brandsRouter from './routes/brands.routes.js';
 import cartRouter from './routes/cart.routes.js';
@@ -61,4 +64,11 @@ app.use('/User', usersRouter);
 
 app.listen(port, () => {
   console.log(`Servidor escuchando en http://localhost:${port}`);
+
+  // Inicializar la base de datos réplica en PostgreSQL (no bloquea el servidor)
+  ensurePgDatabaseExists()
+    .then(() => initPgSchema())
+    .catch((err: Error) => {
+      console.error('[PG Replica] No se pudo inicializar la réplica:', err.message);
+    });
 });

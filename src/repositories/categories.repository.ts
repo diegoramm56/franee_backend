@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertCategory, replicateDeleteCategory } from '../replication/pgReplicator.js';
 
 export interface CategoryRecord {
   categoryId: string;
@@ -57,7 +58,9 @@ export class CategoriesRepository {
         OUTPUT inserted.id_category
         VALUES (@name, @description, @state);
       `);
-    return (await this.findById(insertResult.recordset[0].id_category))!;
+    const created = (await this.findById(insertResult.recordset[0].id_category))!;
+    replicateUpsertCategory(created);
+    return created;
   }
 
   async update(categoryId: number, data: { name?: string; description?: string | null; state?: boolean; }): Promise<CategoryRecord | null> {
@@ -78,7 +81,9 @@ export class CategoriesRepository {
             [status] = @state
         WHERE id_category = @categoryId;
       `);
-    return this.findById(categoryId);
+    const updated = await this.findById(categoryId);
+    if (updated) replicateUpsertCategory(updated);
+    return updated;
   }
 
   async delete(categoryId: number): Promise<CategoryRecord | null> {
@@ -90,6 +95,7 @@ export class CategoriesRepository {
     await pool.request()
       .input('categoryId', sql.Int, categoryId)
       .query('DELETE FROM dbo.Categories WHERE id_category = @categoryId;');
+    replicateDeleteCategory(categoryId);
     return existing;
   }
 }

@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateUpsertProvider, replicateDeleteProvider } from '../replication/pgReplicator.js';
 
 export interface ProviderRecord {
   providerId: string;
@@ -85,7 +86,9 @@ export class ProvidersRepository {
         OUTPUT inserted.id_provider
         VALUES (@name, @nit, @contact, @phone, @email, @address, @state);
       `);
-    return (await this.findById(insertResult.recordset[0].id_provider))!;
+    const created = (await this.findById(insertResult.recordset[0].id_provider))!;
+    replicateUpsertProvider(created);
+    return created;
   }
 
   async update(providerId: number, data: {
@@ -122,7 +125,9 @@ export class ProvidersRepository {
             [status] = @state
         WHERE id_provider = @providerId;
       `);
-    return this.findById(providerId);
+    const updated = await this.findById(providerId);
+    if (updated) replicateUpsertProvider(updated);
+    return updated;
   }
 
   async delete(providerId: number): Promise<ProviderRecord | null> {
@@ -134,6 +139,7 @@ export class ProvidersRepository {
     await pool.request()
       .input('providerId', sql.Int, providerId)
       .query('DELETE FROM dbo.Providers WHERE id_provider = @providerId;');
+    replicateDeleteProvider(providerId);
     return existing;
   }
 }

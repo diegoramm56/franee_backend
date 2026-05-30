@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateReplaceUserBranches } from '../replication/pgReplicator.js';
 
 export interface UserBranchRecord {
   userId: string;
@@ -41,6 +42,7 @@ export class UserBranchesRepository {
           `);
       }
       await transaction.commit();
+      replicateReplaceUserBranches(userId, branchIds);
     } catch (error) {
       await transaction.rollback();
       throw error;

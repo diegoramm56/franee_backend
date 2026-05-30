@@ -1,4 +1,5 @@
 import { getConnection, sql } from '../config/database.js';
+import { replicateReplaceProductBranches, replicateDecrementProductBranchStock } from '../replication/pgReplicator.js';
 
 export interface ProductBranchRecord {
   productId: string;
@@ -69,6 +70,9 @@ export class ProductBranchRepository {
           `);
       }
       await transaction.commit();
+      // Replicate after successful commit — reload records to get final state
+      const updated = await this.listByProduct(productId);
+      replicateReplaceProductBranches(productId, updated);
     } catch (error) {
       await transaction.rollback();
       throw error;
@@ -90,6 +94,7 @@ export class ProductBranchRepository {
     if (result.rowsAffected[0] === 0) {
       throw new Error('Stock insuficiente o producto no configurado en la sucursal');
     }
+    replicateDecrementProductBranchStock(productId, branchId, quantity);
   }
 }
 
